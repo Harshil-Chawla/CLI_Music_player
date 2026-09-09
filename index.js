@@ -1,56 +1,99 @@
 const fs = require("fs");
 const { spawn } = require("node:child_process");
 
-// Path to our songs folder
+// ==============================
+// MILESTONE 1: READ SONGS
+// ==============================
+
 const songsPath = "./songs";
 
-// Read all files from the songs folder
 const songs = fs
     .readdirSync(songsPath)
     .filter((file) => file.endsWith(".mp3"));
 
-// Welcome message
-console.log("🎶 Welcome to Terminal Music Player 🎶\n");
 
-// Check if there are any songs
-if (songs.length === 0) {
-    console.log("No MP3 files found in the songs folder.");
-    process.exit(0);
-}
+// ==============================
+// MILESTONE 3: SELECTED SONG
+// ==============================
 
-// Display all songs
-console.log("Available Songs:\n");
-
-for (let i = 0; i < songs.length; i++) {
-    const songName = songs[i].replace(".mp3", "");
-    console.log(`${i + 1}. ${songName}`);
-}
-
-console.log("\n🎵 Enter the number of the song you want to play:");
+let selectedIndex = 0;
 
 
-// Take input from the terminal
-process.stdin.on("data", (input) => {
+// ==============================
+// DISPLAY PLAYLIST
+// ==============================
 
-    const userInput = Number(input.toString().trim());
+function displaySongs() {
 
-    // Check whether the entered number is valid
-    if (userInput < 1 || userInput > songs.length || Number.isNaN(userInput)) {
-        console.log("❌ Invalid song number.");
-        return;
+    // Clear terminal
+    process.stdout.write("\x1b[2J");
+
+    // Move cursor to top-left
+    process.stdout.write("\x1b[H");
+
+    console.log("🎵 TERMINAL MUSIC PLAYER\n");
+
+    for (let i = 0; i < songs.length; i++) {
+
+        if (i === selectedIndex) {
+            console.log(`▶ ${songs[i].replace(".mp3", "")}`);
+        } else {
+            console.log(`  ${songs[i].replace(".mp3", "")}`);
+        }
     }
 
-    // Get the selected song
-    const selectedSong = songs[userInput - 1];
+    console.log("\n↑ ↓ Navigate");
+    console.log("Q Quit");
+}
 
-    console.log(`\n▶️ Playing: ${selectedSong.replace(".mp3", "")}`);
 
-    // Start afplay
-    const player = spawn("afplay", [`${songsPath}/${selectedSong}`]);
+// Display playlist when program starts
+displaySongs();
 
-    // When the song finishes
-    player.on("close", () => {
-        console.log("\n🎵 Song finished.");
+
+// ==============================
+// MILESTONE 2: KEYBOARD INPUT
+// ==============================
+
+process.stdin.setRawMode(true);
+
+process.stdin.setEncoding("utf8");
+
+process.stdin.on("data", (key) => {
+
+    // ==========================
+    // MILESTONE 3: MOVE UP
+    // ==========================
+
+    if (key === "\x1b[A") {
+
+        if (selectedIndex > 0) {
+            selectedIndex--;
+
+            displaySongs();
+        }
+    }
+
+
+    // ==========================
+    // MILESTONE 3: MOVE DOWN
+    // ==========================
+
+    if (key === "\x1b[B") {
+
+        if (selectedIndex < songs.length - 1) {
+            selectedIndex++;
+
+            displaySongs();
+        }
+    }
+
+
+    // ==========================
+    // MILESTONE 2: QUIT
+    // ==========================
+
+    if (key === "q") {
         process.exit(0);
-    });
+    }
 });
