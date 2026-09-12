@@ -79,11 +79,29 @@ function playSong() {
 
     isPaused = false;
 
-    console.log(`\n▶ Now Playing: ${songs[selectedIndex].replace(".mp3", "")}`);
+    console.log(
+        `\n▶ Now Playing: ${songs[selectedIndex].replace(".mp3", "")}`
+    );
+
+
+    // ==========================
+    // MILESTONE 7: AUTO NEXT
+    // ==========================
 
     currentProcess.on("close", () => {
+
         currentProcess = null;
         isPaused = false;
+
+        // Check if there is a next song
+        if (selectedIndex < songs.length - 1) {
+
+            selectedIndex++;
+
+            displaySongs();
+
+            playSong();
+        }
     });
 }
 
@@ -112,7 +130,9 @@ process.stdin.on("data", (key) => {
     if (key === "\x1b[A") {
 
         if (selectedIndex > 0) {
+
             selectedIndex--;
+
             displaySongs();
         }
     }
@@ -125,7 +145,9 @@ process.stdin.on("data", (key) => {
     if (key === "\x1b[B") {
 
         if (selectedIndex < songs.length - 1) {
+
             selectedIndex++;
+
             displaySongs();
         }
     }
@@ -136,6 +158,7 @@ process.stdin.on("data", (key) => {
     // ==========================
 
     if (key === "\r") {
+
         playSong();
     }
 
@@ -149,13 +172,17 @@ process.stdin.on("data", (key) => {
         if (currentProcess) {
 
             if (isPaused === false) {
+
                 currentProcess.kill("SIGSTOP");
+
                 isPaused = true;
+
             } else {
+
                 currentProcess.kill("SIGCONT");
+
                 isPaused = false;
             }
-
         }
     }
 
@@ -167,8 +194,11 @@ process.stdin.on("data", (key) => {
     if (key === "s") {
 
         if (currentProcess) {
+
             currentProcess.kill("SIGTERM");
+
             currentProcess = null;
+
             isPaused = false;
         }
     }
@@ -215,6 +245,7 @@ process.stdin.on("data", (key) => {
     if (key === "q") {
 
         if (currentProcess) {
+
             currentProcess.kill("SIGTERM");
         }
 
