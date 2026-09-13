@@ -7,11 +7,22 @@ const { spawn } = require("node:child_process");
 
 const songsPath = "./songs";
 
-const songs = fs
-    .readdirSync(songsPath)
-    .filter((file) => file.endsWith(".mp3"));
+let songs;
+
+try {
+
+    songs = fs
+        .readdirSync(songsPath)
+        .filter((file) => file.endsWith(".mp3"));
+
+} catch (error) {
+
+    console.log("Error: songs folder not found.");
+    process.exit(1);
+}
 
 if (songs.length === 0) {
+
     console.log("No MP3 files found in the songs folder.");
     process.exit(0);
 }
@@ -63,20 +74,22 @@ function displaySongs() {
 
 
 // ==============================
-// MILESTONE 4: PLAY SONG
+// PLAY SONG
 // ==============================
 
 function playSong() {
 
-    // Stop currently playing song
+    // Stop old process
     if (currentProcess) {
         currentProcess.kill("SIGTERM");
+        currentProcess = null;
     }
 
     const songPath = `${songsPath}/${songs[selectedIndex]}`;
 
-    currentProcess = spawn("afplay", [songPath]);
+    const newProcess = spawn("afplay", [songPath]);
 
+    currentProcess = newProcess;
     isPaused = false;
 
     console.log(
@@ -85,15 +98,21 @@ function playSong() {
 
 
     // ==========================
-    // MILESTONE 7: AUTO NEXT
+    // SONG FINISHED
     // ==========================
 
-    currentProcess.on("close", () => {
+    newProcess.on("close", () => {
+
+        // Ignore old process
+        if (currentProcess !== newProcess) {
+            return;
+        }
 
         currentProcess = null;
         isPaused = false;
 
-        // Check if there is a next song
+
+        // Automatically play next song
         if (selectedIndex < songs.length - 1) {
 
             selectedIndex++;
@@ -102,6 +121,24 @@ function playSong() {
 
             playSong();
         }
+    });
+
+
+    // ==========================
+    // ERROR HANDLING
+    // ==========================
+
+    newProcess.on("error", (error) => {
+
+        // Ignore old process
+        if (currentProcess !== newProcess) {
+            return;
+        }
+
+        console.log("Error playing song:", error.message);
+
+        currentProcess = null;
+        isPaused = false;
     });
 }
 
@@ -114,7 +151,7 @@ displaySongs();
 
 
 // ==============================
-// MILESTONE 2: KEYBOARD INPUT
+// KEYBOARD INPUT
 // ==============================
 
 process.stdin.setRawMode(true);
@@ -124,7 +161,7 @@ process.stdin.on("data", (key) => {
 
 
     // ==========================
-    // MILESTONE 3: MOVE UP
+    // MOVE UP
     // ==========================
 
     if (key === "\x1b[A") {
@@ -139,7 +176,7 @@ process.stdin.on("data", (key) => {
 
 
     // ==========================
-    // MILESTONE 3: MOVE DOWN
+    // MOVE DOWN
     // ==========================
 
     if (key === "\x1b[B") {
@@ -154,7 +191,7 @@ process.stdin.on("data", (key) => {
 
 
     // ==========================
-    // MILESTONE 4: ENTER
+    // PLAY
     // ==========================
 
     if (key === "\r") {
@@ -163,32 +200,35 @@ process.stdin.on("data", (key) => {
     }
 
 
-    // ==========================
-    // MILESTONE 5: PAUSE / RESUME
-    // ==========================
+// ==========================
+// PAUSE / RESUME
+// ==========================
 
-    if (key === " ") {
+if (key === " ") {
+
+    if (isPaused === false) {
 
         if (currentProcess) {
+            currentProcess.kill("SIGTERM");
 
-            if (isPaused === false) {
+            currentProcess = null;
+            isPaused = true;
 
-                currentProcess.kill("SIGSTOP");
-
-                isPaused = true;
-
-            } else {
-
-                currentProcess.kill("SIGCONT");
-
-                isPaused = false;
-            }
+            console.log("\n⏸ Paused");
         }
+
+    } else {
+
+        isPaused = false;
+        playSong();
+
+        console.log("\n▶ Resumed");
     }
+}
 
 
     // ==========================
-    // MILESTONE 5: STOP
+    // STOP
     // ==========================
 
     if (key === "s") {
@@ -200,12 +240,14 @@ process.stdin.on("data", (key) => {
             currentProcess = null;
 
             isPaused = false;
+
+            console.log("\n⏹ Stopped");
         }
     }
 
 
     // ==========================
-    // MILESTONE 6: NEXT
+    // NEXT
     // ==========================
 
     if (key === "n") {
@@ -222,7 +264,7 @@ process.stdin.on("data", (key) => {
 
 
     // ==========================
-    // MILESTONE 6: PREVIOUS
+    // PREVIOUS
     // ==========================
 
     if (key === "p") {
@@ -249,6 +291,26 @@ process.stdin.on("data", (key) => {
             currentProcess.kill("SIGTERM");
         }
 
+        process.stdin.setRawMode(false);
+
         process.exit(0);
     }
 });
+
+
+// ==============================
+// CTRL + C
+// ==============================
+
+process.on("SIGINT", () => {
+
+    if (currentProcess) {
+
+        currentProcess.kill("SIGTERM");
+    }
+
+    process.stdin.setRawMode(false);
+
+    process.exit(0);
+});
+
